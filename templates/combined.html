@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}Orders, Purchases & History{% endblock %}
+{% block content %}
+<div class="container">
+  <h1 class="mb-4">Orders, Purchases & History</h1>
+  
+  <!-- Overall Delivered Total at the Top Right -->
+  <div style="text-align:right; margin-bottom:10px;">
+    <h4>Overall Delivered Total: {{ overall_total }}</h4>
+  </div>
+  
+  <!-- Pending Orders Section -->
+ <!-- Pending Orders Section -->
+<div class="card mb-4">
+  <div class="card-body">
+    <h2>Pending Orders</h2>
+    {% if pending_orders %}
+      <div style="max-height:300px; overflow-y:auto;">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Part Number</th>
+              <th>Name</th>
+              <th>Current Count</th>
+              <th>Threshold</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for part in pending_orders %}
+              <tr>
+                <td>{{ part.model_number }}</td>
+                <td>{{ part.name }}</td>
+                <td>{{ part.count }}</td>
+                <td>{{ part.threshold }}</td>
+                <td>
+                  {% if part.order_link and part.order_link != "" %}
+                    <a href="{{ part.order_link }}" target="_blank" class="btn btn-sm btn-info">
+                      Order Now
+                    </a>
+                  {% else %}
+                    <a href="{{ url_for('order_error') }}" class="btn btn-sm btn-info">
+                      Order Now
+                    </a>
+                  {% endif %}
+                  <a href="{{ url_for('purchase_update', part_id=part.id) }}" class="btn btn-sm btn-secondary">
+                    Confirm Order
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p>No pending orders.</p>
+    {% endif %}
+  </div>
+</div>
+
+  
+ <!-- Purchased Orders Section -->
+<div class="card mb-4">
+  <div class="card-body">
+    <h2>Purchased Orders (Pending Delivery)</h2>
+    {% if purchased_orders %}
+      <div style="max-height:300px; overflow-y:auto;">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Part Number</th>
+              <th>Name</th>
+              <th>Tracking / Estimated Delivery</th>
+              <th>Quantity Purchased</th>
+              <th>Total Cost</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for order in purchased_orders %}
+              <tr id="purchase-row-{{ order.id }}">
+                <td>{{ order.part.model_number }}</td>
+                <td>{{ order.part.name }}</td>
+                <td>
+                  {{ order.tracking_number or "N/A" }}
+                  {% if order.estimated_delivery %}
+                    <br><small>Est. Delivery: {{ order.estimated_delivery.strftime('%Y-%m-%d') }}</small>
+                  {% endif %}
+                </td>
+                <td>{{ order.purchased_quantity }}</td>
+                <td>{{ order.total_cost }}</td>
+                <td>
+                  <a href="{{ url_for('order_edit', order_id=order.id) }}" class="btn btn-sm btn-primary">Edit</a>
+                  <input type="checkbox" class="deliver-checkbox" data-order-id="{{ order.id }}">
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p>No purchased orders pending delivery.</p>
+    {% endif %}
+  </div>
+</div>
+
+  
+  <!-- Delivered Orders History Section -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <h2>Delivered Orders History</h2>
+      {% if delivered_orders %}
+        <div style="max-height:300px; overflow-y:auto;">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Part Number</th>
+                <th>Name</th>
+                <th>Order Date</th>
+                <th>Delivered Date</th>
+                <th>Quantity Purchased</th>
+                <th>Total Cost</th>
+                <th>Tracking</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for order in delivered_orders %}
+                <tr>
+                  <td>{{ order.part.model_number }}</td>
+                  <td>{{ order.part.name }}</td>
+                  <td>{{ order.order_date.strftime('%Y-%m-%d') }}</td>
+                  <td>{{ order.delivered_date.strftime('%Y-%m-%d') if order.delivered_date else "N/A" }}</td>
+                  <td>{{ order.purchased_quantity }}</td>
+                  <td>{{ order.total_cost }}</td>
+                  <td>{{ order.tracking_number or "N/A" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p>No delivered orders recorded.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.deliver-checkbox').forEach(function(checkbox) {
+    checkbox.addEventListener('change', function(){
+        var orderId = this.getAttribute('data-order-id');
+        if(this.checked) {
+            fetch('/api/deliver/' + orderId, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.success) {
+                        var row = document.getElementById('purchase-row-' + orderId);
+                        row.querySelector('td:last-child').innerHTML = 'Delivered';
+                    } else {
+                        alert("Error: " + data.error);
+                        this.checked = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred.');
+                    this.checked = false;
+                });
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Pending Orders{% endblock %}
+{% block content %}
+  <div class="card">
+    <div class="card-body">
+      <h1>Pending Orders</h1>
+      {% if pending_orders %}
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Part Number</th>
+              <th>Name</th>
+              <th>Order Link</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for part in pending_orders %}
+              <tr>
+                <td>{{ part.model_number }}</td>
+                <td>{{ part.name }}</td>
+                <td>
+                  <a href="{{ part.order_link }}" target="_blank" class="btn btn-sm btn-info">Order Now</a>
+                </td>
+                <td>
+                  <a href="{{ url_for('purchase_update', part_id=part.id) }}" class="btn btn-sm btn-secondary">
+                    Mark as Purchased
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>No pending orders.</p>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

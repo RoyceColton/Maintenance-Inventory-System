@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Delivery History for {{ year }}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <h1>Delivery History for {{ year }}</h1>
+    
+    <!-- Overall Yearly Total at the Very Top -->
+    <div style="text-align: right; font-size: 1.5rem; margin-bottom: 20px;">
+      <strong>Overall Total: {{ overall_total }}</strong>
+    </div>
+    
+    {% set month_names = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] %}
+    {% for month in range(1, 13) %}
+      <h3>{{ month_names[month - 1] }} - Monthly Total: {{ history_data[month].total_cost}}</h3>
+      {% if history_data[month].orders %}
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Part Number</th>
+              <th>Name</th>
+              <th>Order Date</th>
+              <th>Delivered Date</th>
+              <th>Quantity Purchased</th>
+              <th>Total Cost</th>
+              <th>Tracking</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for order in history_data[month].orders %}
+              <tr>
+                <td>{{ order.part.model_number }}</td>
+                <td>{{ order.part.name }}</td>
+                <td>{{ order.order_date.strftime('%Y-%m-%d') }}</td>
+                <td>
+                  {% if order.delivered_date %}
+                    {{ order.delivered_date.strftime('%Y-%m-%d') }}
+                  {% else %}
+                    N/A
+                  {% endif %}
+                </td>
+                <td>{{ order.purchased_quantity }}</td>
+                <td>{{ order.total_cost }}</td>
+                <td>{{ order.tracking_number or "N/A" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p><strong>Monthly Total: {{ history_data[month].total_cost }}</strong></p>
+      {% else %}
+        <p>{{ month_names[month - 1] }}.</p>
+      {% endif %}
+      <hr>
+    {% endfor %}
+    
+    <!-- Overall Total at the Bottom (Optional redundancy) -->
+    <div style="text-align: right; font-size: 1.5rem;">
+      <strong>Overall Total: {{ overall_total }}</strong>
+    </div>
+  </div>
+</div>
+{% endblock %}

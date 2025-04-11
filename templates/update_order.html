@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Update Order Details{% endblock %}
+{% block content %}
+  <div class="card">
+    <div class="card-body">
+      <h1>Update Order Details for Part: {{ part.name }}</h1>
+      
+      <!-- Order Now Button using the same order link provided in add_part -->
+      {% if part.order_link %}
+        <a href="{{ part.order_link }}" target="_blank" class="btn btn-info mb-3">Order Now</a>
+      {% else %}
+        <p>No order link provided.</p>
+      {% endif %}
+      
+      <form method="post">
+        <div class="form-group">
+          <label for="order_status">Order Status</label>
+          <select class="form-control" id="order_status" name="order_status">
+            {% set statuses = ["Not Ordered", "Ordered", "In Transit", "Delivered"] %}
+            {% for status in statuses %}
+              <option value="{{ status }}" {% if part.order_status == status %}selected{% endif %}>
+                {{ status }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="estimated_delivery">Estimated Delivery Date</label>
+          <input type="date" class="form-control" id="estimated_delivery" name="estimated_delivery" 
+                 value="{{ part.estimated_delivery|default('', true) }}">
+        </div>
+        
+        <div class="form-group">
+          <label for="tracking_number">Tracking Number (optional)</label>
+          <input type="text" class="form-control" id="tracking_number" name="tracking_number" 
+                 value="{{ part.tracking_number or '' }}" placeholder="Enter tracking number">
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Update Order</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,82 @@
+/* Body / Base Styles */
+body {
+  font-family: 'Open Sans', Arial, sans-serif;
+  background-color: #222527b7; /* Slate Gray */
+  color: #ffffff;            /* White text for contrast */
+  margin: 0;
+  padding: 0;
+}
+
+/* Navbar Styles */
+.navbar {
+  background-color: #f15a24 !important;
+}
+.navbar-brand, .navbar-nav .nav-link {
+  color: #ffffff !important;
+}
+.navbar-brand:hover, .navbar-nav .nav-link:hover {
+  color: #f2f2f2 !important;
+}
+
+/* Card Layout */
+.card {
+  margin-bottom: 1rem;
+  border: none;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+}
+.card-body {
+  background-color: #ffffff;
+  border-radius: 4px;
+  color: #333333;
+}
+
+/* Tables */
+.table thead th {
+  background-color: #f15a24;
+  color: #ffffff;
+}
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: #ffffff;
+}
+.table-striped tbody tr:nth-of-type(even) {
+  background-color: #f8f8f8;
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: #f15a24;
+  border-color: #f15a24;
+}
+.btn-primary:hover {
+  background-color: #d14f21;
+  border-color: #c5481d;
+}
+.btn-danger {
+  background-color: #e74c3c;
+  border-color: #e74c3c;
+}
+.btn-danger:hover {
+  background-color: #c0392b;
+  border-color: #c0392b;
+}
+
+/* Alerts */
+.alert-warning {
+  background-color: #ffe8cd;
+  color: #855d2f;
+}
+.alert-success {
+  background-color: #d4edda;
+  color: #155724;
+}
+.alert-danger {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+/* Extra-large Button */
+.btn-extra-large {
+  font-size: 2rem;
+  padding: 1rem 2rem;
+}

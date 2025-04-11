@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Expenses{% endblock %}
+{% block content %}
+  <div class="card">
+    <div class="card-body">
+      <h1>Expenses (Last 6 Months)</h1>
+      {% if expenses %}
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Part ID</th>
+              <th>Expense Date</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for expense in expenses %}
+              <tr>
+                <td>{{ expense.part_id }}</td>
+                <td>{{ expense.expense_date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ expense.amount }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>No expense records found.</p>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Orders & Purchases{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <h1>Pending Orders</h1>
+    {% if pending_orders %}
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Part Number</th>
+            <th>Name</th>
+            <th>Order Link</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for part in pending_orders %}
+            <tr>
+              <td>{{ part.model_number }}</td>
+              <td>{{ part.name }}</td>
+              <td>
+                <a href="{{ part.order_link }}" target="_blank" class="btn btn-sm btn-info">Order Now</a>
+              </td>
+              <td>
+                <a href="{{ url_for('purchase_update', part_id=part.id) }}" class="btn btn-sm btn-secondary">
+                  Mark as Purchased
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No pending orders.</p>
+    {% endif %}
+  </div>
+</div>
+
+<hr>
+
+<div class="card mt-4">
+  <div class="card-body">
+    <h1>Purchased Orders</h1>
+    {% if purchased_parts %}
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Part Number</th>
+            <th>Name</th>
+            <th>Tracking / Estimated Delivery</th>
+            <th>Quantity Purchased</th>
+            <th>Total Cost</th>
+            <th>Delivered?</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for part in purchased_parts %}
+            <tr id="purchase-row-{{ part.id }}">
+              <td>{{ part.model_number }}</td>
+              <td>{{ part.name }}</td>
+              <td>
+                {{ part.tracking_number or "N/A" }}
+                {% if part.estimated_delivery %}
+                  <br><small>Est. Delivery: {{ part.estimated_delivery.strftime('%Y-%m-%d') }}</small>
+                {% endif %}
+              </td>
+              <td>{{ part.purchased_quantity }}</td>
+              <td>{{ part.purchase_total_cost }}</td>
+              <td>
+                {% if part.order_status != "Delivered" %}
+                  <input type="checkbox" class="deliver-checkbox" data-part-id="{{ part.id }}">
+                {% else %}
+                  Delivered
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <h3 class="text-right">Overall Total: {{ overall_total }}</h3>
+    {% else %}
+      <p>No purchased orders recorded.</p>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.deliver-checkbox').forEach(function(checkbox) {
+    checkbox.addEventListener('change', function(){
+        var partId = this.getAttribute('data-part-id');
+        if(this.checked) {
+            fetch('/api/deliver/' + partId, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.success) {
+                        var row = document.getElementById('purchase-row-' + partId);
+                        row.querySelector('td:last-child').innerHTML = 'Delivered';
+                    } else {
+                        alert("Error: " + data.error);
+                        this.checked = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred.');
+                    this.checked = false;
+                });
+        }
+    });
+});
+</script>
+{% endblock %}

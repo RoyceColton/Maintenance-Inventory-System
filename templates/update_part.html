@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Update Part{% endblock %}
+{% block content %}
+  <div class="card">
+    <div class="card-body">
+      <h1>Update Part</h1>
+      <form method="post">
+        <div class="form-group">
+          <label for="name">Part Name</label>
+          <input type="text" class="form-control" id="name" name="name" value="{{ part.name }}" required>
+        </div>
+        <div class="form-group">
+          <label for="model_number">Model Number</label>
+          <input type="text" class="form-control" id="model_number" name="model_number" value="{{ part.model_number }}" required>
+        </div>
+        <div class="form-group">
+          <label for="count">Count</label>
+          <input type="number" class="form-control" id="count" name="count" value="{{ part.count }}" required>
+        </div>
+        <div class="form-group">
+          <label for="cost">Cost</label>
+          <input type="number" step="0.01" class="form-control" id="cost" name="cost" value="{{ part.cost }}" required>
+        </div>
+        <div class="form-group">
+          <label for="room">Room</label>
+          <select class="form-control" id="room" name="room" required>
+            <option value="">Select Room</option>
+            {% for room in rooms.keys() %}
+              <option value="{{ room }}" {% if room == part.room %}selected{% endif %}>{{ room }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="appliance_type">Appliance</label>
+          <input type="text" class="form-control" id="appliance_type" name="appliance_type" value="{{ part.appliance_type }}">
+        </div>
+        <div class="form-group">
+          <label for="order_link">Order Link</label>
+          <input type="url" class="form-control" id="order_link" name="order_link" value="{{ part.order_link }}">
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Update Part</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

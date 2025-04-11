@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Purchase Update for {{ part.name }}{% endblock %}
+{% block content %}
+  <div class="card">
+    <div class="card-body">
+      <h1>Purchase Update for Part: {{ part.name }}</h1>
+      <form method="post">
+        <div class="form-group">
+          <label for="quantity">Quantity Ordered</label>
+          <input type="number" class="form-control" id="quantity" name="quantity" required>
+        </div>
+        <div class="form-group">
+          <label for="total_cost">Total Cost</label>
+          <input type="number" step="0.01" class="form-control" id="total_cost" name="total_cost" required>
+        </div>
+        <div class="form-group">
+          <label for="tracking_number">Tracking Number (if applicable)</label>
+          <input type="text" class="form-control" id="tracking_number" name="tracking_number" placeholder="Enter tracking number">
+        </div>
+        <div class="form-group">
+          <label for="estimated_delivery">Estimated Arrival Date</label>
+          <input type="date" class="form-control" id="estimated_delivery" name="estimated_delivery">
+        </div>
+        <button type="submit" class="btn btn-primary">Confirm Purchase</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}
