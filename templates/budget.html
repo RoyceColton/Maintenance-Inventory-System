@@ -2,17 +2,26 @@
 {% block title %}Budget Report{% endblock %}
 {% block content %}
 
-<div class="center" style="text-align: center;" >
-    <h1>Coming Soon</h1>
+<div class="card">
+  <div class="card-body">
+    <h1>Budget Tracker</h1>
+    <p><strong>Total Budget:</strong> ${{ overall_budget }}</p>
+    <p>
+      <strong>Total Spent:</strong>
+      <span class="{% if is_over %}text-danger{% else %}text-success{% endif %}" style="font-weight: bold;">
+        ${{ spent_total }}
+      </span>
+    </p>
+
+    {% if is_over %}
+      <p style="color: red;"><strong>Over Budget By:</strong> ${{ over_budget }}</p>
+    {% endif %}
+
+    <hr>
+    <p><strong>Expense Line 1:</strong> ${{ expense_line1 }}</p>
+    <p><strong>Expense Line 2:</strong> ${{ expense_line2 }}</p>
+
+    <p class="text-muted mt-4">* This resets quarterly (TBD)</p>
+  </div>
 </div>
 
-<!-- <div class="card">
-  <div class="card-body">
-    <h1>Budget Report</h1>
-    <p><strong>Overall Budget:</strong> {{ overall_budget }}</p>
-    <p><strong>Expense Line 1:</strong> {{ expense_line1 }}</p>
-    <p><strong>Expense Line 2:</strong> {{ expense_line2 }}</p>
-    Add additional budget lines or charts here as needed
-  </div>
-</div> -->
-{% endblock %}

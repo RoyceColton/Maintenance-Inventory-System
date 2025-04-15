@@ -296,28 +296,32 @@ def budget():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     try:
         creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
-    except Exception as e:
-        app.logger.error("Error loading credentials: %s", e)
-        abort(500, description="Error loading credentials")
-    
-    try:
         client = gspread.authorize(creds)
         sheet = client.open("Test Budget").sheet1
     except Exception as e:
-        app.logger.error("Error accessing Google Sheet: %s", e)
-        abort(500, description="Error accessing Google Sheet")
-    
+        app.logger.error("Google Sheet error: %s", e)
+        abort(500, description="Failed to access budget data")
+
     try:
-        overall_budget = sheet.acell("B2").value
-        expense_line1 = sheet.acell("B3").value
-        expense_line2 = sheet.acell("B4").value
-       # expense_line3 = sheet.acell("B5").value
+        overall_budget = float(sheet.acell("B2").value)
+        expense_line1 = float(sheet.acell("B3").value)
+        expense_line2 = float(sheet.acell("B4").value)
     except Exception as e:
-        app.logger.error("Error reading cells: %s", e)
-        abort(500, description="Error reading data from Google Sheet")
-    
-    return render_template("budget.html", overall_budget=overall_budget,
-                           expense_line1=expense_line1, expense_line2=expense_line2)
+        app.logger.error("Budget value error: %s", e)
+        abort(500, description="Failed to read budget cells")
+
+    delivered_orders = OrderHistory.query.filter(OrderHistory.delivered_date != None).all()
+    spent_total = sum(order.total_cost for order in delivered_orders)
+
+    over_budget = max(0, spent_total - overall_budget)
+
+    return render_template("budget.html",
+                           overall_budget=overall_budget,
+                           spent_total=spent_total,
+                           over_budget=over_budget,
+                           is_over=spent_total > overall_budget,
+                           expense_line1=expense_line1,
+                           expense_line2=expense_line2)
 
 
 
