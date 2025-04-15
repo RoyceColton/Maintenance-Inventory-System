@@ -295,7 +295,7 @@ def order_edit(order_id):
 def budget():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     try:
-        creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+        creds = ServiceAccountCredentials.from_json_keyfile_name("GoogleSheetsCreds.json", scope)
         client = gspread.authorize(creds)
         sheet = client.open("Test Budget").sheet1
     except Exception as e:
