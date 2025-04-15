@@ -5,7 +5,9 @@
 <div class="card">
   <div class="card-body">
     <h1>Budget Tracker</h1>
+
     <p><strong>Total Budget:</strong> ${{ overall_budget }}</p>
+
     <p>
       <strong>Total Spent:</strong>
       <span class="{% if is_over %}text-danger{% else %}text-success{% endif %}" style="font-weight: bold;">
@@ -14,8 +16,21 @@
     </p>
 
     {% if is_over %}
-      <p style="color: red;"><strong>Over Budget By:</strong> ${{ over_budget }}</p>
+      <p class="text-danger"><strong>Over Budget By:</strong> ${{ over_budget }}</p>
     {% endif %}
+
+    <hr>
+    <h4>Budget Usage</h4>
+    <div class="progress" style="height: 30px;">
+      <div class="progress-bar {% if is_over %}bg-danger{% else %}bg-success{% endif %}" 
+           role="progressbar" 
+           style="width: {{ percent_spent }}%;" 
+           aria-valuenow="{{ percent_spent }}" 
+           aria-valuemin="0" 
+           aria-valuemax="100">
+        {{ percent_spent }}%
+      </div>
+    </div>
 
     <hr>
     <p><strong>Expense Line 1:</strong> ${{ expense_line1 }}</p>
@@ -25,3 +40,4 @@
   </div>
 </div>
 
+{% endblock %}

@@ -295,7 +295,8 @@ def order_edit(order_id):
 def budget():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     try:
-        creds = ServiceAccountCredentials.from_json_keyfile_name("GoogleSheetsCreds.json", scope)
+        import os
+        creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
         client = gspread.authorize(creds)
         sheet = client.open("Test Budget").sheet1
     except Exception as e:
@@ -312,17 +313,17 @@ def budget():
 
     delivered_orders = OrderHistory.query.filter(OrderHistory.delivered_date != None).all()
     spent_total = sum(order.total_cost for order in delivered_orders)
-
     over_budget = max(0, spent_total - overall_budget)
+    percent_spent = round((spent_total / overall_budget) * 100, 1) if overall_budget else 0
 
     return render_template("budget.html",
                            overall_budget=overall_budget,
                            spent_total=spent_total,
                            over_budget=over_budget,
                            is_over=spent_total > overall_budget,
+                           percent_spent=percent_spent,
                            expense_line1=expense_line1,
                            expense_line2=expense_line2)
-
 
 
 @app.route('/order/error')
