@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Account Settings{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <h2 class="mb-4">Account Settings</h2>
+
+    <form method="POST">
+      <input type="hidden" name="action" value="update_email">
+      <div class="form-group">
+        <label for="email">Update Email</label>
+        <input type="email" name="email" class="form-control" placeholder="Enter email" value="{{ user.email or '' }}">
+      </div>
+      <button type="submit" class="btn btn-secondary">Update Email</button>
+    </form>
+
+    <hr>
+
+    <form method="POST">
+      <input type="hidden" name="action" value="change_password">
+      <div class="form-group">
+        <label for="current_password">Current Password</label>
+        <input type="password" name="current_password" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label for="new_password">New Password</label>
+        <input type="password" name="new_password" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label for="confirm_password">Confirm New Password</label>
+        <input type="password" name="confirm_password" class="form-control" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Change Password</button>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

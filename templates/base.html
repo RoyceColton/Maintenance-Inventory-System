@@ -2,68 +2,132 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Maintenance Inventory System{% endblock %}</title>
-  
-  <!-- Bootstrap CSS -->
+  <title>{% block title %}The Village IMS{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  
-  <!-- Optional: Google Fonts -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700&display=swap">
-  
-  <!-- Custom CSS -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css">
+  <style>
+    body {
+      background-color: #f4f4f4;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .sidebar {
+      width: 220px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background-color: #343a40;
+      padding-top: 1rem;
+      z-index: 1000;
+    }
+    .sidebar .nav-link {
+      color: #fff;
+      padding: 0.75rem 1.25rem;
+      font-size: 0.95rem;
+    }
+    .sidebar .nav-link:hover,
+    .sidebar .nav-link.active {
+      background-color: #f15a24;
+      color: #fff;
+      border-radius: 0 1rem 1rem 0;
+    }
+    .sidebar .brand {
+      color: #fff;
+      font-weight: bold;
+      font-size: 1.3rem;
+      padding-left: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .topbar {
+      margin-left: 220px;
+      background-color: white;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .main-content {
+      margin-left: 220px;
+      padding: 2rem;
+      display: flex;
+      justify-content: center;
+    }
+    .main-content > * {
+      width: 100%;
+      max-width: 960px;
+    }
+    .btn-primary {
+      background-color: #f15a24;
+      border-color: #f15a24;
+    }
+    .btn-primary:hover {
+      background-color: #e04e1f;
+      border-color: #e04e1f;
+    }
+    .card {
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+  </style>
 </head>
 <body>
-  <!-- Navigation bar -->
-  <nav class="navbar navbar-expand-lg" style="background-color: #f15a24;">
-    <a class="navbar-brand text-white" href="{{ url_for('index') }}">The Village at South Campus IMS</a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
-            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav">
-        <li class="nav-item">
-          <a class="nav-link text-white" href="{{ url_for('index') }}">Dashboard</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link text-white" href="{{ url_for('add_part') }}">Add Part</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link text-white" href="{{ url_for('combined_orders') }}">Orders & History</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link text-white" href="{{ url_for('history') }}">Yearly</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link text-white" href="{{ url_for('budget') }}">Budget</a>
-        </li>
-      </ul>
-    </div>
-  </nav>
-  
-  <div class="container mt-4">
-    <!-- Flash messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show mt-3" role="alert">
-            {{ message }}
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-    
-    {% block content %}{% endblock %}
-  </div>
-  
-  <!-- Bootstrap JS and dependencies -->
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="brand">🏢 IMS</div>
+  <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+    <i class="fas fa-home mr-2"></i> Dashboard
+  </a>
+  <a href="{{ url_for('combined_orders') }}" class="nav-link {% if request.endpoint == 'combined_orders' %}active{% endif %}">
+    <i class="fas fa-boxes mr-2"></i> Orders
+  </a>
+  <a href="{{ url_for('budget') }}" class="nav-link {% if request.endpoint == 'budget' %}active{% endif %}">
+    <i class="fas fa-wallet mr-2"></i> Budget
+  </a>
+  <a href="{{ url_for('trends') }}" class="nav-link {% if request.endpoint == 'trends' %}active{% endif %}">
+    <i class="fas fa-chart-line mr-2"></i> Trends
+  </a>
+  {% if current_user.role == 'warden' %}
+  <a href="{{ url_for('view_logs') }}" class="nav-link {% if request.endpoint == 'view_logs' %}active{% endif %}">
+    <i class="fas fa-user-shield mr-2"></i> Warden Logs
+  </a>
+  {% endif %}
+  <a href="{{ url_for('logout') }}" class="nav-link text-danger mt-4">
+    <i class="fas fa-sign-out-alt mr-2"></i> Logout
+  </a>
+</div>
+
+<!-- Topbar -->
+<div class="topbar">
+  <span class="h5 mb-0">The Village at South Campus</span>
+  {% if current_user.is_authenticated %}
+    <span class="text-muted">Logged in as: {{ current_user.username }}</span>
+  {% endif %}
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</div>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>

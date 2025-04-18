@@ -4,19 +4,19 @@
 <div class="card">
   <div class="card-body">
     <h1 class="mb-4">Inventory Dashboard</h1>
-    
-    <!-- Search and Filter Form -->
-    <form method="get" class="form-inline mb-4">
-      <input type="text" name="search" class="form-control mr-2" placeholder="Search by name or part number" value="{{ search }}">
-      <select name="room" class="form-control mr-2" id="roomSelect">
+
+    <!-- Search & Filter -->
+    <form method="get" class="form-inline mb-4 justify-content-center">
+      <input type="text" name="search" class="form-control mr-2" placeholder="Search part/model" value="{{ search }}">
+      <select name="room" class="form-control mr-2">
         <option value="">All Rooms</option>
         {% for room in rooms.keys() %}
           <option value="{{ room }}" {% if room == selected_room %}selected{% endif %}>{{ room }}</option>
         {% endfor %}
       </select>
-      <select name="appliance" class="form-control mr-2" id="applianceSelect">
+      <select name="appliance" class="form-control mr-2">
         <option value="">All Appliances</option>
-        {% if selected_room and rooms[selected_room] %}
+        {% if selected_room %}
           {% for appliance in rooms[selected_room] %}
             <option value="{{ appliance }}" {% if appliance == selected_appliance %}selected{% endif %}>{{ appliance }}</option>
           {% endfor %}
@@ -24,129 +24,64 @@
       </select>
       <button type="submit" class="btn btn-primary">Search</button>
     </form>
-    
-    <!-- Link to Combined Orders & History Page -->
-    <a href="{{ url_for('combined_orders') }}" class="btn btn-warning mb-4">Orders & History</a>
-    
+
+    <a href="{{ url_for('combined_orders') }}" class="btn btn-outline-secondary mb-4">Orders & History</a>
+
     {% if alerts %}
-      <div class="alert alert-warning">
-        <strong>Low Stock Alerts:</strong>
-        <ul>
-          {% for part in alerts %}
-            <li>{{ part.name }} ({{ part.count }} in stock, threshold: {{ part.threshold }})</li>
-          {% endfor %}
-        </ul>
-      </div>
+    <div class="alert alert-warning text-left">
+      <strong>Low Stock Alerts:</strong>
+      <ul class="mb-0">
+        {% for part in alerts %}
+          <li>{{ part.name }} ({{ part.count }} in stock, threshold: {{ part.threshold }})</li>
+        {% endfor %}
+      </ul>
+    </div>
     {% endif %}
-    
-    <!-- All Parts Section -->
-    <h2>All Parts</h2>
-    {% if parts|length > 0 %}
-      <table class="table table-striped">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Model</th>
-            <th>Count</th>
-            <th>Cost</th>
-            <th>Room</th>
-            <th>Appliance</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for part in parts %}
-            <tr id="part-row-{{ part.id }}">
-              <td>{{ part.id }}</td>
-              <td>{{ part.name }}</td>
-              <td>{{ part.model_number }}</td>
-              <td>
-                <span class="part-count" id="part-count-{{ part.id }}">{{ part.count }}</span>
-              </td>
-              <td>{{ part.cost }}</td>
-              <td>{{ part.room }}</td>
-              <td>{{ part.appliance_type }}</td>
-              <td>
-                <a href="{{ url_for('update_part', part_id=part.id) }}" class="btn btn-sm btn-primary">Edit</a>
-                <form action="{{ url_for('delete_part', part_id=part.id) }}" method="post" style="display:inline;">
-                  <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');">Delete</button>
-                </form>
-                <!-- Plus and minus buttons for inline stock updates -->
-                <button class="btn btn-sm btn-success increment-btn" data-id="{{ part.id }}">+</button>
-                <button class="btn btn-sm btn-warning decrement-btn" data-id="{{ part.id }}">-</button>
-              </td>
+
+    <h3>All Parts</h3>
+    {% if parts %}
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="thead-light">
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Model</th>
+              <th>Count</th>
+              <th>Cost</th>
+              <th>Room</th>
+              <th>Appliance</th>
+              <th>Actions</th>
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {% for part in parts %}
+              <tr>
+                <td>{{ part.id }}</td>
+                <td>{{ part.name }}</td>
+                <td>{{ part.model_number }}</td>
+                <td>{{ part.count }}</td>
+                <td>${{ part.cost }}</td>
+                <td>{{ part.room }}</td>
+                <td>{{ part.appliance_type }}</td>
+                <td>
+                  <a href="{{ url_for('update_part', part_id=part.id) }}" class="btn btn-sm btn-primary">Edit</a>
+                  <form action="{{ url_for('delete_part', part_id=part.id) }}" method="post" style="display:inline;">
+                    <button class="btn btn-sm btn-danger" onclick="return confirm('Delete this part?')">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     {% else %}
-      <p>No parts found.</p>
+      <p>No parts available.</p>
     {% endif %}
-    
-    <div class="text-center my-4">
-      <a href="{{ url_for('add_part') }}" class="btn btn-primary btn-extra-large">Add Part</a>
+
+    <div class="text-center mt-4">
+      <a href="{{ url_for('add_part') }}" class="btn btn-primary btn-lg px-5">Add New Part</a>
     </div>
   </div>
 </div>
-
-<script>
-(function() {
-  function updateCountDisplay(partId, newCount) {
-    document.getElementById('part-count-' + partId).textContent = newCount;
-  }
-  document.querySelectorAll('.increment-btn').forEach(function(button) {
-    button.addEventListener('click', function(e) {
-      e.preventDefault();
-      const partId = this.getAttribute('data-id');
-      fetch(`/api/increment/${partId}`, { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            updateCountDisplay(partId, data.new_count);
-          } else {
-            alert(data.error || 'Failed to increment count.');
-          }
-        })
-        .catch(error => console.error('Error:', error));
-    });
-  });
-  document.querySelectorAll('.decrement-btn').forEach(function(button) {
-    button.addEventListener('click', function(e) {
-      e.preventDefault();
-      const partId = this.getAttribute('data-id');
-      fetch(`/api/decrement/${partId}`, { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            updateCountDisplay(partId, data.new_count);
-          } else {
-            alert(data.error || 'Failed to decrement count.');
-          }
-        })
-        .catch(error => console.error('Error:', error));
-    });
-  });
-})();
-</script>
-
-<script>
-(function() {
-  const roomSelect = document.getElementById("roomSelect");
-  const applianceSelect = document.getElementById("applianceSelect");
-  const roomsData = {{ rooms|tojson|safe }};
-  roomSelect.addEventListener("change", function() {
-    const room = this.value;
-    applianceSelect.innerHTML = '<option value="">All Appliances</option>';
-    if (room && roomsData[room]) {
-      roomsData[room].forEach(function(appliance) {
-        const option = document.createElement("option");
-        option.value = appliance;
-        option.text = appliance;
-        applianceSelect.appendChild(option);
-      });
-    }
-  });
-})();
-</script>
 {% endblock %}

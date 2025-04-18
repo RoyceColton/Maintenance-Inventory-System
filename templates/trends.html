@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Usage Trends{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-stretch">
+
+  <!-- Table Card -->
+  <div class="card flex-fill mr-md-3 mb-4" style="flex: 1 1 48%; min-height: 500px;">
+    <div class="card-body d-flex flex-column h-100">
+      <h2 class="mb-1">
+        <i class="fas fa-chart-line mr-2 text-primary"></i> Inventory Trends
+      </h2>
+      <p class="text-muted">Weekly, monthly, and quarterly usage with budget insights.</p>
+      <div class="table-responsive flex-fill">
+        <table class="table table-striped table-bordered mt-3 mb-0">
+          <thead class="thead-dark">
+            <tr>
+              <th>Part Name</th>
+              <th>Model</th>
+              <th>Used This Week</th>
+              <th>Used This Month</th>
+              <th>Used This Quarter</th>
+              <th>Quarter Spend ($)</th>
+              <th>% of Total Spend</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in usage %}
+            <tr>
+              <td>{{ item.part.name }}</td>
+              <td>{{ item.part.model_number }}</td>
+              <td>{{ item.week_used }}</td>
+              <td>{{ item.month_used }}</td>
+              <td>{{ item.quarter_used }}</td>
+              <td>${{ item.quarter_cost | round(2) }}</td>
+              <td>{{ item.budget_pct }}%</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="mt-3 font-weight-bold">Total Quarterly Spend: ${{ total_quarter_cost | round(2) }}</p>
+    </div>
+  </div>
+
+  <!-- Grouped Bar Chart Card -->
+  <div class="card flex-fill mb-4" style="flex: 1 1 48%; min-height: 500px;">
+    <div class="card-body d-flex flex-column justify-content-center h-100">
+      <h5 class="card-title text-center">Usage Comparison (W/M/Q)</h5>
+      <canvas id="usageChart" style="max-width: 100%; max-height: 400px;"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const labels      = {{ usage | map(attribute='part.name')  | list | tojson }};
+  const weekData    = {{ usage | map(attribute='week_used')  | list | tojson }};
+  const monthData   = {{ usage | map(attribute='month_used') | list | tojson }};
+  const quarterData = {{ usage | map(attribute='quarter_used')| list | tojson }};
+
+  const ctx = document.getElementById('usageChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'This Week',
+          data: weekData,
+          backgroundColor: '#dd5e2a'
+        },
+        {
+          label: 'This Month',
+          data: monthData,
+          backgroundColor: '#f2aa3c'
+        },
+        {
+          label: 'This Quarter',
+          data: quarterData,
+          backgroundColor: '#f6db9b'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          stacked: false,
+          title: {
+            display: true,
+            text: 'Part'
+          }
+        },
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Units Used'
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'bottom'
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y} units`
+          }
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

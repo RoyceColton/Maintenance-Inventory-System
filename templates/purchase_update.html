@@ -21,6 +21,15 @@
           <label for="estimated_delivery">Estimated Arrival Date</label>
           <input type="date" class="form-control" id="estimated_delivery" name="estimated_delivery">
         </div>
+        <div class="form-group">
+          <label for="expense_line">Expense Line</label>
+          <select name="expense_line" id="expense_line" class="form-control" required>
+            <option value="" disabled selected>Select a line</option>
+            <option value="Line 1">Line 1</option>
+            <option value="Line 2">Line 2</option>
+            <option value="Line 3">Line 3</option>
+          </select>
+        </div>       
         <button type="submit" class="btn btn-primary">Confirm Purchase</button>
       </form>
     </div>
