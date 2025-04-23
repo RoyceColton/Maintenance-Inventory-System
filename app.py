@@ -397,8 +397,7 @@ def budget():
             credentials_file = "credentials.json"  # EC2
         else:
             credentials_file = "dev_credentials.json"  # Local
-
-            creds = ServiceAccountCredentials.from_json_keyfile_name(credentials_file, scope)
+        creds = ServiceAccountCredentials.from_json_keyfile_name(credentials_file, scope)
         client = gspread.authorize(creds)
         sheet = client.open("Test Budget").sheet1
     except Exception as e:
