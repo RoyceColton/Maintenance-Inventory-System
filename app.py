@@ -391,7 +391,14 @@ def budget():
     # Load Google Sheet and read dynamic cell ranges for the selected quarter
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     try:
-        creds = ServiceAccountCredentials.from_json_keyfile_name("dev_credentials.json", scope)
+        import socket
+        hostname = socket.gethostname()
+        if "ip-" in hostname:
+            credentials_file = "credentials.json"  # EC2
+        else:
+            credentials_file = "dev_credentials.json"  # Local
+
+            creds = ServiceAccountCredentials.from_json_keyfile_name(credentials_file, scope)
         client = gspread.authorize(creds)
         sheet = client.open("Test Budget").sheet1
     except Exception as e:
