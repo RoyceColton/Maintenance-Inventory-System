@@ -67,8 +67,10 @@
                 <td>
                   <a href="{{ url_for('update_part', part_id=part.id) }}" class="btn btn-sm btn-primary">Edit</a>
                   <form action="{{ url_for('delete_part', part_id=part.id) }}" method="post" style="display:inline;">
-                    <button class="btn btn-sm btn-danger" onclick="return confirm('Delete this part?')">Delete</button>
+                    <button class="btn btn-sm btn-danger" onclick="return confirm('Delete this part?')">Delete</button>                   
                   </form>
+                  <a href="{{ url_for('api_increment_part', part_id=part.id) }}" class="btn btn-success btn-sm">+</a>
+                  <a href="{{ url_for('api_decrement_part', part_id=part.id) }}" class="btn btn-warning btn-sm">–</a> 
                 </td>
               </tr>
             {% endfor %}

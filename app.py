@@ -201,17 +201,21 @@ def delete_part(part_id):
         flash(f"Deleted part: {part.name}", "success")
     return redirect(url_for('index'))
 
-@app.route('/api/increment/<int:part_id>', methods=['POST'])
+@app.route('/api/increment/<int:part_id>', methods=['GET', 'POST'])
+@login_required
 def api_increment_part(part_id):
     part = db.session.get(Part, part_id)
     if part:
         part.count += 1
         db.session.commit()
         log_action(current_user, "increment", "Part", part.id, f"Count changed to {part.count}")
+        if request.method == 'GET':
+            return redirect(url_for('index'))
         return jsonify({'success': True, 'new_count': part.count})
     return jsonify({'success': False, 'error': 'Part not found'}), 404
 
-@app.route('/api/decrement/<int:part_id>', methods=['POST'])
+@app.route('/api/decrement/<int:part_id>', methods=['GET', 'POST'])
+@login_required
 def api_decrement_part(part_id):
     part = db.session.get(Part, part_id)
     if part:
@@ -219,9 +223,17 @@ def api_decrement_part(part_id):
             part.count -= 1
             db.session.commit()
             log_action(current_user, "decrement", "Part", part.id, f"Count changed to {part.count}")
+            if request.method == 'GET':
+                return redirect(url_for('index'))
             return jsonify({'success': True, 'new_count': part.count})
         else:
+            if request.method == 'GET':
+                flash("Part count is already 0.", "warning")
+                return redirect(url_for('index'))
             return jsonify({'success': False, 'error': 'Count already 0'}), 400
+    if request.method == 'GET':
+        flash("Part not found.", "danger")
+        return redirect(url_for('index'))
     return jsonify({'success': False, 'error': 'Part not found'}), 404
 
 
@@ -379,7 +391,7 @@ def budget():
     # Load Google Sheet and read dynamic cell ranges for the selected quarter
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     try:
-        creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+        creds = ServiceAccountCredentials.from_json_keyfile_name("dev_credentials.json", scope)
         client = gspread.authorize(creds)
         sheet = client.open("Test Budget").sheet1
     except Exception as e:
