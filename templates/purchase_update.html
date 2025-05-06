@@ -1,37 +1,46 @@
 {% extends "base.html" %}
-{% block title %}Purchase Update for {{ part.name }}{% endblock %}
+{% block title %}Update Purchase{% endblock %}
+
 {% block content %}
-  <div class="card">
-    <div class="card-body">
-      <h1>Purchase Update for Part: {{ part.name }}</h1>
-      <form method="post">
-        <div class="form-group">
-          <label for="quantity">Quantity Ordered</label>
-          <input type="number" class="form-control" id="quantity" name="quantity" required>
-        </div>
-        <div class="form-group">
-          <label for="total_cost">Total Cost</label>
-          <input type="number" step="0.01" class="form-control" id="total_cost" name="total_cost" required>
-        </div>
-        <div class="form-group">
-          <label for="tracking_number">Tracking Number (if applicable)</label>
-          <input type="text" class="form-control" id="tracking_number" name="tracking_number" placeholder="Enter tracking number">
-        </div>
-        <div class="form-group">
-          <label for="estimated_delivery">Estimated Arrival Date</label>
-          <input type="date" class="form-control" id="estimated_delivery" name="estimated_delivery">
-        </div>
-        <div class="form-group">
-          <label for="expense_line">Expense Line</label>
-          <select name="expense_line" id="expense_line" class="form-control" required>
-            <option value="" disabled selected>Select a line</option>
-            <option value="Line 1">Line 1</option>
-            <option value="Line 2">Line 2</option>
-            <option value="Line 3">Line 3</option>
-          </select>
-        </div>       
-        <button type="submit" class="btn btn-primary">Confirm Purchase</button>
-      </form>
+<div class="container mt-4">
+  <h2>New Order: <strong>{{ part.name }}</strong></h2>
+  <form method="POST">
+    <div class="form-group">
+      <label for="quantity">Quantity Purchased:</label>
+      <input type="number" name="quantity" class="form-control" required min="1">
     </div>
-  </div>
+
+    <div class="form-group">
+      <label for="total_cost">Total Cost ($):</label>
+      <input type="number" name="total_cost" class="form-control" step="0.01" required>
+    </div>
+
+    <div class="form-group">
+      <label for="tracking_number">Tracking Number:</label>
+      <input type="text" name="tracking_number" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label for="estimated_delivery">Estimated Delivery Date:</label>
+      <input type="date" name="estimated_delivery" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label for="expense_line">Select Budget Category:</label>
+      <select name="expense_line" class="form-control" required>
+        <option value="">-- Select Category --</option>
+        <option value="Appliances">Appliances</option>
+        <option value="HVAC">HVAC</option>
+        <option value="Mechanical">Mechanical</option>
+        <option value="Pools & Exterior">Pools & Exterior</option>
+        <option value="Interior Unit Work">Interior Unit Work</option>
+        <option value="Fire & Safety">Fire & Safety</option>
+        <option value="Janitorial">Janitorial</option>
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Submit Purchase</button>
+    <a href="{{ url_for('combined_orders') }}" class="btn btn-secondary ml-2">Cancel</a>
+  </form>
+</div>
 {% endblock %}

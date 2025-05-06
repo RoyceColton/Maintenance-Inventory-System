@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Turn Preparation{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <h1 class="mb-4">Turn Prep - {{ year }}</h1>
+
+    {% if current_user.role == 'warden' %}
+    <form method="POST" action="{{ url_for('setup_turn_2025') }}" class="mb-4">
+      <button type="submit" class="btn btn-danger">⚙️ SETUP TURN 2025</button>
+    </form>
+    {% endif %}
+
+    <form method="get" class="form-inline mb-4">
+      <label for="year" class="mr-2">Select Year:</label>
+      <select name="year" id="year" class="form-control mr-2" onchange="this.form.submit()">
+        {% for y in available_years %}
+          <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </form>
+
+    <form method="get" class="form-inline mb-4">
+      <input type="hidden" name="year" value="{{ year }}">
+      <select name="building" class="form-control mr-2">
+        <option value="">All Buildings</option>
+        {% for b in buildings %}
+          <option value="{{ b }}" {% if b == selected_building %}selected{% endif %}>{{ b }}</option>
+        {% endfor %}
+      </select>
+      <select name="floor" class="form-control mr-2">
+        <option value="">All Floors</option>
+        {% for f in range(1, 6) %}
+          <option value="{{ f }}" {% if f == selected_floor %}selected{% endif %}>Floor {{ f }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary">Filter</button>
+    </form>
+
+    {% if grouped_tasks %}
+      <form id="bulkTaskForm">
+        <table class="table table-bordered">
+          <thead class="thead-dark">
+            <tr>
+              <th>Unit</th>
+              <th>Building</th>
+              <th>Floor</th>
+              <th># Completed</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for unit_number, unit_tasks in grouped_tasks.items() %}
+              {% set completed = unit_tasks | selectattr('is_completed') | list | length %}
+              {% set total = unit_tasks | length %}
+              <tr>
+                <td>{{ unit_number }}</td>
+                <td>{{ unit_tasks[0].building }}</td>
+                <td>{{ unit_tasks[0].floor }}</td>
+                <td>{{ completed }} / {{ total }}</td>
+                <td>
+                  <button class="btn btn-sm btn-outline-primary" type="button" data-toggle="collapse" data-target="#unit-{{ unit_number }}">View Tasks</button>
+                </td>
+              </tr>
+              <tr class="collapse" id="unit-{{ unit_number }}">
+                <td colspan="5">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Task</th>
+                        <th>Completed By</th>
+                        <th>Completed At</th>
+                        <th>Status <small class="text-dark">(Complete All)</small> <input type="checkbox" class="mark-all" data-unit="{{ unit_number }}"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for task in unit_tasks %}
+                      <tr>
+                        <td>{{ task.task_name }}</td>
+                        <td>{{ task.completed_by or "N/A" }}</td>
+                        <td>{{ task.completed_at.strftime('%Y-%m-%d %H:%M') if task.completed_at else "N/A" }}</td>
+                        <td>
+                          <input type="checkbox" data-task-id="{{ task.id }}" data-unit="{{ unit_number }}" {% if task.is_completed %}checked{% endif %}>
+                        </td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </form>
+    {% else %}
+      <p class="text-muted">No turn tasks found for this selection.</p>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const checkboxes = document.querySelectorAll("input[type='checkbox'][data-task-id]");
+
+  checkboxes.forEach(function(checkbox) {
+    checkbox.addEventListener("change", function() {
+      const taskId = this.getAttribute("data-task-id");
+      const isCompleted = this.checked;
+      const endpoint = isCompleted ? `/turn/complete/${taskId}` : `/turn/uncomplete/${taskId}`;
+      fetch(endpoint, {
+        method: 'POST'
+      }).then(res => {
+        if (!res.ok) {
+          alert('Failed to update task');
+        }
+      }).catch(err => {
+        console.error(err);
+        alert('Network error');
+      });
+    });
+  });
+
+  document.querySelectorAll(".mark-all").forEach(function(masterBox) {
+    masterBox.addEventListener("change", function() {
+      const unit = this.getAttribute("data-unit");
+      const shouldCheck = this.checked;
+      document.querySelectorAll(`input[type='checkbox'][data-unit='${unit}'][data-task-id]`).forEach(cb => {
+        if (cb.checked !== shouldCheck) {
+          cb.checked = shouldCheck;
+          cb.dispatchEvent(new Event('change'));
+        }
+      });
+    });
+  });
+});
+</script>
+{% endblock %}

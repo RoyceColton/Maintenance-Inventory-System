@@ -6,9 +6,11 @@ from flask_migrate import Migrate
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta, timezone, date
-from sqlalchemy import or_
+from sqlalchemy import or_, extract
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from collections import defaultdict
+import os
 
 
 app = Flask(__name__)
@@ -20,6 +22,19 @@ migrate = Migrate(app, db)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+
+class TurnTask(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    year = db.Column(db.Integer, nullable=False)  # Example: 2025
+    building = db.Column(db.String(50))
+    side = db.Column(db.String(50))  # East or West
+    floor = db.Column(db.Integer)
+    unit_number = db.Column(db.String(10))
+    task_name = db.Column(db.String(100))
+    is_completed = db.Column(db.Boolean, default=False)
+    completed_by = db.Column(db.String(100))
+    completed_at = db.Column(db.DateTime)
+
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -260,7 +275,6 @@ def combined_orders():
                            delivered_orders=delivered_orders,
                            overall_total=overall_total)
 
-# Purchase Update Route: Create an OrderHistory record and update Part status to "Purchased"
 @app.route('/purchase/update/<int:part_id>', methods=['GET', 'POST'])
 @login_required
 def purchase_update(part_id):
@@ -268,13 +282,23 @@ def purchase_update(part_id):
     if not part:
         flash("Part not found", "warning")
         return redirect(url_for('combined_orders'))
+
     if request.method == 'POST':
         quantity = int(request.form.get('quantity', 0))
         total_cost = float(request.form.get('total_cost', 0))
         tracking_number = request.form.get('tracking_number', '')
         estimated_delivery_str = request.form.get('estimated_delivery', '')
         estimated_delivery = None
-        expense_line = request.form.get('expense_line')
+
+        valid_categories = [
+            "Appliances", "HVAC" "Mechanical",
+            "Pools & Exterior", "Interior Unit Work",
+            "Fire & Safety", "Janitorial"
+        ]
+        expense_line = request.form.get('expense_line', '').strip()
+        if expense_line not in valid_categories:
+            flash("Please select a valid budget category.", "danger")
+            return redirect(url_for('purchase_update', part_id=part.id))
 
         if estimated_delivery_str:
             try:
@@ -282,20 +306,24 @@ def purchase_update(part_id):
             except ValueError:
                 flash("Invalid estimated delivery date", "danger")
                 return redirect(url_for('purchase_update', part_id=part.id))
+
         new_order = OrderHistory(
             part_id=part.id,
             purchased_quantity=quantity,
             total_cost=total_cost,
             tracking_number=tracking_number,
             estimated_delivery=estimated_delivery,
-            expense_line = expense_line
+            expense_line=expense_line
         )
         db.session.add(new_order)
         part.order_status = "Purchased"
         db.session.commit()
+
         flash(f"Purchase for part {part.name} recorded with total cost {total_cost}.", "success")
         return redirect(url_for('combined_orders'))
+
     return render_template('purchase_update.html', part=part)
+
 
 # API endpoint to mark an order as delivered, update the Part count, and reset its status
 @app.route('/api/deliver/<int:order_id>', methods=['POST'])
@@ -367,19 +395,19 @@ def order_edit(order_id):
             return redirect(url_for('order_edit', order_id=order.id))
     return render_template('order_edit.html', order=order)
 
+
 @app.route('/budget')
 @login_required
 def budget():
     from datetime import datetime, date
     import os
 
-    # Get quarter from query param or use current quarter
+    # Determine quarter
     q_param = request.args.get('q', type=int)
     current_month = datetime.now().month
     default_quarter = (current_month - 1) // 3 + 1
     selected_quarter = q_param if q_param in [1, 2, 3, 4] else default_quarter
 
-    # Determine quarter start and end for date filtering
     quarter_start_month = (selected_quarter - 1) * 3 + 1
     quarter_start = date(datetime.now().year, quarter_start_month, 1)
     quarter_end_month = quarter_start_month + 3
@@ -388,90 +416,104 @@ def budget():
     quarter_label = f"Q{selected_quarter}"
     quarter_range = f"{quarter_start.strftime('%b %d')} – {quarter_end.strftime('%b %d, %Y')}"
 
-    # Load Google Sheet and read dynamic cell ranges for the selected quarter
+    # Spreadsheet setup
+    import socket
+    hostname = socket.gethostname()
+    credentials_file = "credentials.json" if "ip-" in hostname else "dev_credentials.json"
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    try:
-        import socket
-        hostname = socket.gethostname()
-        if "ip-" in hostname:
-            credentials_file = "credentials.json"  # EC2
-        else:
-            credentials_file = "dev_credentials.json"  # Local
-        creds = ServiceAccountCredentials.from_json_keyfile_name(credentials_file, scope)
-        client = gspread.authorize(creds)
-        sheet = client.open("Test Budget").sheet1
-    except Exception as e:
-        app.logger.error("Google Sheet error: %s", e)
-        abort(500, description="Failed to access budget data")
+    creds = ServiceAccountCredentials.from_json_keyfile_name(credentials_file, scope)
+    client = gspread.authorize(creds)
+    sheet = client.open_by_key("1-6FhHu-Sq9LXjJxGBYiMK353nKEiOzsZtVGcTG_to5Y").sheet1
 
-    # Map Q1–Q4 to columns B–E
-    column_letter = chr(65 + selected_quarter)  # B=Q1, C=Q2, etc.
-    try:
-        expense_line1 = float(sheet.acell(f"{column_letter}2").value)
-        expense_line2 = float(sheet.acell(f"{column_letter}3").value)
-        expense_line3 = float(sheet.acell(f"{column_letter}4").value)
-        overall_budget = expense_line1 + expense_line2 + expense_line3
-    except Exception as e:
-        app.logger.error("Budget value error: %s", e)
-        abort(500, description="Failed to read budget cells")
+    # Month labels in the spreadsheet (Row 1)
+    quarter_months = {
+        1: ["JAN", "FEB", "MARCH"],
+        2: ["APRIL", "MAY", "JUNE"],
+        3: ["JULY", "AUGUST", "SEPT"],
+        4: ["OCT", "NOV", "DEC"]
+    }
 
-    # Get orders for that quarter
+    # Group definitions
+    category_map = {
+        "Appliances": [
+            "Appliance Parts", "Appliance - Non-Routine Labor", "Electrical Parts - Including Light Fixtures"
+        ],
+        "HVAC": [
+            "HVAC Parts", "HVAC - Freon", "HVAC"
+        ],
+        "Mechanical": [
+            "Boiler Parts", "Boiler - Non-Routine Labor", "Plumbing Parts", "Elevator Maintenance", "Gate/Garage Repair and Supply", "Keys Locks"
+        ],
+        "Pools & Exterior": [
+            "Swimming- Non-Routine Labor", "Swimming Pool Supplies", "Irrigation/ Sprinkler Repairs", "Snow Removal", "Snow Removal Supplies"
+        ],
+        "Interior Unit Work": [
+            "Windows", "Doors", "Blinds and Screens", "Apartment Interiors"
+        ],
+        "Fire & Safety": [
+            "Fire Alarm"
+        ],
+        "Janitorial": [
+            "Non-Routine Janitorial", "Janitorial Supplies", "Pest Control Supply"
+        ]
+    }
+
+    category_totals = {group: {"budget": 0, "spent": 0} for group in category_map}
+
+    values = sheet.get_all_values()
+    headers = values[0]
+    rows = values[1:]
+
+    # Budget lookup using month names
+    for row in rows:
+        if not row or not row[0]:
+            continue
+        name = row[0].strip()
+        category_group = next((g for g, items in category_map.items() if name in items), None)
+        if not category_group:
+            continue
+        row_total = 0
+        for month_label in quarter_months[selected_quarter]:
+            try:
+                col_index = headers.index(month_label)
+                if col_index < len(row):
+                    val = row[col_index]
+                    if val:
+                        row_total += float(val)
+            except (ValueError, IndexError):
+                continue
+        category_totals[category_group]["budget"] += row_total
+
+    # Delivered Orders Spend — use only if expense_line matches
     delivered_orders = OrderHistory.query.filter(
         OrderHistory.delivered_date != None,
         OrderHistory.delivered_date >= quarter_start,
         OrderHistory.delivered_date < quarter_end
     ).all()
 
-    spent_total = sum(order.total_cost for order in delivered_orders)
-
-    line_totals = {
-        "Line 1": 0,
-        "Line 2": 0,
-        "Line 3": 0
-    }
+    spent_total = 0
     for order in delivered_orders:
-        if order.expense_line and order.expense_line in line_totals:
-            line_totals[order.expense_line] += order.total_cost
+        line = order.expense_line
+        if line in category_totals:
+            category_totals[line]["spent"] += order.total_cost
+            spent_total += order.total_cost
 
+    overall_budget = sum(group["budget"] for group in category_totals.values())
     over_budget = max(0, spent_total - overall_budget)
     percent_spent = round((spent_total / overall_budget) * 100, 1) if overall_budget else 0
 
     return render_template("budget.html",
+        quarter_label=quarter_label,
+        quarter_range=quarter_range,
+        current_quarter=selected_quarter,
         overall_budget=overall_budget,
         spent_total=spent_total,
         over_budget=over_budget,
         is_over=spent_total > overall_budget,
         percent_spent=percent_spent,
-        quarter_label=quarter_label,
-        quarter_range=quarter_range,
-        current_quarter=selected_quarter,
-        expense_line1=expense_line1,
-        expense_line2=expense_line2,
-        expense_line3=expense_line3,
-        line1_spent=line_totals["Line 1"],
-        line2_spent=line_totals["Line 2"],
-        line3_spent=line_totals["Line 3"]
+        category_totals=category_totals
     )
 
-#route to login
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))  # or any default route
-
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-
-        user = User.query.filter_by(username=username).first()
-        if user and user.check_password(password):
-            login_user(user)
-            flash('Logged in successfully.', 'success')
-            return redirect(url_for('index'))  # or role-specific view
-        else:
-            flash('Invalid username or password.', 'danger')
-
-    return render_template('login.html')
 #logout route
 @app.route('/logout')
 @login_required
@@ -515,6 +557,82 @@ def trends():
         item['budget_pct'] = round((item['quarter_cost'] / total_quarter_cost) * 100, 1) if total_quarter_cost > 0 else 0
 
     return render_template("trends.html", usage=usage, total_quarter_cost=total_quarter_cost)
+
+@app.route('/turn', methods=['GET'])
+@login_required
+def turn():
+    year = request.args.get('year', datetime.today().year, type=int)
+    building = request.args.get('building', '')
+    floor = request.args.get('floor', type=int)
+
+    # Base query with filters
+    query = TurnTask.query.filter_by(year=year)
+    if building:
+        query = query.filter_by(building=building)
+    if floor:
+        query = query.filter_by(floor=floor)
+
+    tasks = query.all()
+
+    # Group tasks by unit number for collapsible display
+    grouped_tasks = defaultdict(list)
+    for task in tasks:
+        grouped_tasks[task.unit_number].append(task)
+
+    # Dropdown options
+    available_years = sorted({task.year for task in TurnTask.query.all()}, reverse=True)
+    buildings = sorted({task.building for task in TurnTask.query.filter_by(year=year).all()})
+
+    return render_template("turn.html",
+        tasks=tasks,
+        year=year,
+        available_years=available_years,
+        buildings=buildings,
+        selected_building=building,
+        selected_floor=floor,
+        grouped_tasks=grouped_tasks
+    )
+
+
+@app.route('/turn/complete/<int:task_id>', methods=['POST'])
+@login_required
+def complete_turn_task(task_id):
+    task = TurnTask.query.get_or_404(task_id)
+    if not task.is_completed:
+        task.is_completed = True
+        task.completed_by = current_user.username
+        task.completed_at = datetime.utcnow()
+        db.session.commit()
+    return redirect(url_for('turn', year=task.year))
+
+
+@app.route('/turn/uncomplete/<int:task_id>', methods=['POST'])
+@login_required
+def uncomplete_turn_task(task_id):
+    task = TurnTask.query.get_or_404(task_id)
+    if task.is_completed:
+        task.is_completed = False
+        task.completed_by = None
+        task.completed_at = None
+        db.session.commit()
+    return redirect(url_for('turn', year=task.year))
+
+@app.route('/turn/setup', methods=['POST'])
+@login_required
+def setup_turn_2025():
+    if current_user.role != 'warden':
+        abort(403)
+
+    existing = TurnTask.query.filter_by(year=2025).first()
+    if existing:
+        flash("Turn tasks for 2025 already exist.", "warning")
+        return redirect(url_for('turn'))
+
+    # Include the apartment layout and task seeding logic here...
+
+    db.session.commit()
+    flash("Turn setup for 2025 completed successfully!", "success")
+    return redirect(url_for('turn'))
 
 @app.route('/warden/logs')
 @login_required

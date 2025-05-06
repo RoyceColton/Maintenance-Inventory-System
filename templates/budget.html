@@ -1,95 +1,120 @@
 {% extends "base.html" %}
-{% block title %}Budget Report{% endblock %}
+{% block title %}Quarterly Budget Overview{% endblock %}
+
 {% block content %}
-
-<div class="card">
+<div class="card mb-4">
   <div class="card-body">
-    <h1>Budget Tracker</h1>
+    <h1>Budget Dashboard – {{ quarter_label }}</h1>
+    <p class="text-muted">Range: {{ quarter_range }}</p>
 
-    <!-- Quarter Switcher -->
-    <div class="mb-3">
-      <strong>View by Quarter:</strong>
-      {% for q in range(1, 5) %}
-        <a href="{{ url_for('budget') }}?q={{ q }}" class="btn btn-sm {% if q == current_quarter %}btn-primary{% else %}btn-outline-primary{% endif %}">
-          Q{{ q }}
-        </a>
-      {% endfor %}
+    <div class="row">
+      <div class="col-md-4">
+        <div class="alert alert-info">
+          <strong>Total Quarterly Budget:</strong><br> ${{ overall_budget }}
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="alert alert-{{ 'danger' if is_over else 'success' }}">
+          <strong>Total Spent:</strong><br> ${{ spent_total }}
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="alert alert-{{ 'danger' if is_over else 'secondary' }}">
+          <strong>{{ percent_spent }}% of Budget Used</strong><br>
+          {% if is_over %}
+            Over Budget by ${{ over_budget }}
+          {% else %}
+            ${{ overall_budget - spent_total }} Remaining
+          {% endif %}
+        </div>
+      </div>
     </div>
 
-    <p><strong>Current View:</strong> {{ quarter_label }}</p>
-    <p><strong>Quarter Date Range:</strong> {{ quarter_range }}</p>
-
-    <p><strong>Total Budget:</strong> ${{ overall_budget }}</p>
-
-    <p>
-      <strong>Total Spent:</strong>
-      <span class="{% if is_over %}text-danger{% else %}text-success{% endif %}" style="font-weight: bold;">
-        ${{ spent_total }}
-      </span>
-    </p>
-
-    {% if is_over %}
-      <p class="text-danger"><strong>Over Budget By:</strong> ${{ over_budget }}</p>
-    {% endif %}
-
-    <hr>
-    <h4>Budget Usage</h4>
-    <div class="progress" style="height: 30px;">
-      <div class="progress-bar {% if is_over %}bg-danger{% else %}bg-success{% endif %}" 
-           role="progressbar" 
-           style="width: {{ percent_spent }}%;" 
-           aria-valuenow="{{ percent_spent }}" 
-           aria-valuemin="0" 
-           aria-valuemax="100">
+    <div class="progress mb-4" style="height: 25px;">
+      <div class="progress-bar {% if is_over %}bg-danger{% else %}bg-success{% endif %}" role="progressbar"
+        style="width: {{ percent_spent }}%;" aria-valuenow="{{ percent_spent }}" aria-valuemin="0" aria-valuemax="100">
         {{ percent_spent }}%
       </div>
     </div>
 
     <hr>
-    <h4>Expense Line Usage</h4>
-    <canvas id="lineChart" height="100"></canvas>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-      const ctx = document.getElementById('lineChart').getContext('2d');
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: ['Appliances', 'Furniture', 'Misc'],
-          datasets: [{
-            label: 'Spent ($)',
-            data: [{{ line1_spent }}, {{ line2_spent }}, {{ line3_spent }}],
-            backgroundColor: [
-              'rgba(75, 192, 192, 0.6)',
-              'rgba(255, 159, 64, 0.6)',
-              'rgba(153, 102, 255, 0.6)'
-            ],
-            borderColor: [
-              'rgba(75, 192, 192, 1)',
-              'rgba(255, 159, 64, 1)',
-              'rgba(153, 102, 255, 1)'
-            ],
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            y: {
-              beginAtZero: true
-            }
-          }
-        }
-      });
-    </script>
+    <h3 class="mb-3">Category Breakdown</h3>
+    <table class="table table-bordered table-striped">
+      <thead class="thead-dark">
+        <tr>
+          <th>Category</th>
+          <th>Budget ($)</th>
+          <th>Spent ($)</th>
+          <th>Remaining ($)</th>
+          <th>% Used</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for group, data in category_totals.items() %}
+        <tr>
+          <td><strong>{{ group }}</strong></td>
+          <td>{{ data.budget }}</td>
+          <td>{{ data.spent }}</td>
+          <td>{{ data.budget - data.spent }}</td>
+          <td>{{ (data.spent / data.budget * 100) | round(1) if data.budget else 0 }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
 
     <hr>
-    <p><strong>Appliances:</strong> ${{ expense_line1 }}</p>
-    <p><strong>Furniture:</strong> ${{ expense_line2 }}</p>
-    <p><strong>Misc:</strong> ${{ expense_line3 }}</p>
-
-    <p class="text-muted mt-4">* This data is based on purchases delivered during the selected quarter.</p>
+    <h4 class="mt-5 mb-3">Budget vs Spent by Category</h4>
+    <canvas id="categoryChart" height="120"></canvas>
   </div>
 </div>
 
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('categoryChart').getContext('2d');
+const categoryLabels = {{ category_totals.keys() | list | tojson }};
+const categoryBudgets = {{ category_totals.values() | map(attribute='budget') | list | tojson }};
+const categorySpent = {{ category_totals.values() | map(attribute='spent') | list | tojson }};
+
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: categoryLabels,
+    datasets: [
+      {
+        label: 'Budget ($)',
+        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+        data: categoryBudgets
+      },
+      {
+        label: 'Spent ($)',
+        backgroundColor: 'rgba(255, 99, 132, 0.6)',
+        data: categorySpent
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: value => '$' + value
+        }
+      }
+    },
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: ctx => `${ctx.dataset.label}: $${ctx.raw}`
+        }
+      },
+      legend: {
+        position: 'bottom'
+      }
+    }
+  }
+});
+</script>
 {% endblock %}

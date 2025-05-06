@@ -1,10 +1,20 @@
+# Python environment
 venv/
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.db
+
+# OS + IDE
 .DS_Store
+*.zip
+
+# Security
 .env
 *.pem
-*.zip
+credentials.json
+dev_credentials.json
+
+# Database or app-specific
+*.db
+instance/

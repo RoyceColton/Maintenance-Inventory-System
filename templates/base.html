@@ -76,7 +76,7 @@
 
 <!-- Sidebar -->
 <div class="sidebar">
-  <div class="brand">🏢 IMS</div>
+  <div class="brand">🏢 Navigation Bar</div>
   <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
     <i class="fas fa-home mr-2"></i> Dashboard
   </a>
@@ -89,6 +89,9 @@
   <a href="{{ url_for('trends') }}" class="nav-link {% if request.endpoint == 'trends' %}active{% endif %}">
     <i class="fas fa-chart-line mr-2"></i> Trends
   </a>
+  <a href="{{ url_for('turn') }}" class="nav-link {% if request.endpoint == 'turn' %}active{% endif %}">
+    <i class="fas fa-tools mr-2"></i> Turn Prep
+  </a>
   {% if current_user.role == 'warden' %}
   <a href="{{ url_for('view_logs') }}" class="nav-link {% if request.endpoint == 'view_logs' %}active{% endif %}">
     <i class="fas fa-user-shield mr-2"></i> Warden Logs
@@ -98,6 +101,7 @@
     <i class="fas fa-sign-out-alt mr-2"></i> Logout
   </a>
 </div>
+
 
 <!-- Topbar -->
 <div class="topbar">
